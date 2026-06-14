@@ -1,0 +1,12 @@
+# Private source material
+*.docx
+profile.md
+INSTRUCTIONS.md
+
+# Unused portraits
+pictures/一寸.jpg
+pictures/一寸小.jpg
+pictures/正脸半身.jpg
+
+# Local tooling
+.DS_Store

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="朱沛玲的个人网站：研究大脑、模型、声音，以及那些仍在发生的月食。">
+  <title>朱沛玲 | Peiling Zhu</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="wordmark" href="#prologue" aria-label="回到首页">
+      <span class="wordmark-cn">朱沛玲</span>
+      <span class="wordmark-en">PEILING ZHU</span>
+    </a>
+    <div class="chapter-readout" aria-live="polite">
+      <span class="chapter-index">00</span>
+      <span class="chapter-name">初见</span>
+    </div>
+    <button class="sound-toggle" type="button" aria-label="切换环境音" title="环境音">
+      <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+  </header>
+
+  <main>
+    <section class="hero chapter" id="prologue" data-chapter="00" data-label="初见">
+      <div class="hero-copy">
+        <p class="eyebrow">ZHEJIANG UNIVERSITY · NEUROAI</p>
+        <h1>朱沛玲<span>Peiling Zhu</span></h1>
+        <p class="hero-intro">在模型、大脑和一堆实验日志之间，<br>试着理解智能。</p>
+        <div class="identity-line">
+          <span>研究者</span><i></i><span>建造者</span><i></i><span>观测者</span>
+        </div>
+      </div>
+
+      <div class="portrait-stage" id="portraitStage">
+        <img class="portrait portrait-blur" src="pictures/侧脸半身.jpg" alt="">
+        <img class="portrait portrait-clear" src="pictures/侧脸半身.jpg" alt="朱沛玲的肖像">
+        <div class="focus-ring" aria-hidden="true"></div>
+        <p class="portrait-hint">移动光标，看清一点</p>
+      </div>
+
+      <button class="enter-story" type="button" data-scroll="#choice">
+        <span>开始认识我</span>
+        <span class="arrow" aria-hidden="true">↓</span>
+      </button>
+      <p class="vertical-note">TRYING TO UNDERSTAND INTELLIGENCE</p>
+    </section>
+
+    <section class="choice-section chapter" id="choice" data-chapter="01" data-label="选择">
+      <div class="section-heading">
+        <p class="section-no">01 / THREE WAYS OF SEEING</p>
+        <h2>你想先知道哪一面？</h2>
+        <p>一个人不是一份按顺序阅读的简历。选择你真正好奇的部分。</p>
+      </div>
+
+      <div class="route-list" role="tablist" aria-label="选择了解方向">
+        <button class="route active" type="button" role="tab" aria-selected="true" data-route="mind">
+          <span class="route-no">A</span>
+          <span class="route-main">
+            <strong>她在研究什么？</strong>
+            <small>Brains · Models · Speech</small>
+          </span>
+          <span class="route-arrow" aria-hidden="true">↗</span>
+        </button>
+        <button class="route" type="button" role="tab" aria-selected="false" data-route="self">
+          <span class="route-no">B</span>
+          <span class="route-main">
+            <strong>她是怎样的人？</strong>
+            <small>Reason · Sensibility · Motion</small>
+          </span>
+          <span class="route-arrow" aria-hidden="true">↗</span>
+        </button>
+        <button class="route" type="button" role="tab" aria-selected="false" data-route="moon">
+          <span class="route-no">C</span>
+          <span class="route-main">
+            <strong>她为什么拍月亮？</strong>
+            <small>Observation · Time · Eclipse</small>
+          </span>
+          <span class="route-arrow" aria-hidden="true">↗</span>
+        </button>
+      </div>
+
+      <div class="route-preview" aria-live="polite">
+        <span class="preview-label">CURRENT ROUTE</span>
+        <p id="previewText">从一个问题开始：模型为什么会学出像是“理解”世界的表征？</p>
+      </div>
+    </section>
+
+    <section class="story-section chapter" id="story" data-chapter="02" data-label="展开">
+      <div class="story-shell">
+        <aside class="story-nav" aria-label="故事章节">
+          <p>SELECTED ROUTE</p>
+          <button class="story-dot active" type="button" data-route="mind"><span>A</span>研究</button>
+          <button class="story-dot" type="button" data-route="self"><span>B</span>自我</button>
+          <button class="story-dot" type="button" data-route="moon"><span>C</span>月亮</button>
+        </aside>
+
+        <div class="story-panels">
+          <article class="story-panel active" data-panel="mind">
+            <header class="panel-header">
+              <p>ROUTE A · THE QUESTIONS</p>
+              <h2>我想知道，<br>模型究竟学会了什么。</h2>
+            </header>
+            <div class="panel-body">
+              <p class="lead">为什么模型只是预测 token、mask 或下一个声音片段，最后却形成了可以迁移的表征？这些表征与大脑处理声音的方式，又有多少相似？</p>
+              <div class="research-grid">
+                <div class="research-item">
+                  <span>01</span>
+                  <h3>NeuroAI</h3>
+                  <p>把模型与大脑放进同一套可检验的问题里，而不是停留在相似性的想象中。</p>
+                </div>
+                <div class="research-item">
+                  <span>02</span>
+                  <h3>Speech Models</h3>
+                  <p>围绕 wav2vec 2.0、HuBERT、BEATs、AVES，追踪声音表征如何逐层形成。</p>
+                </div>
+                <div class="research-item">
+                  <span>03</span>
+                  <h3>Brain Alignment</h3>
+                  <p>比较模型结构、训练目标与数据分布，如何影响它们与听觉皮层活动的对应。</p>
+                </div>
+              </div>
+              <blockquote>“把模型、大脑和真实世界智能，放在同一张图里理解。”</blockquote>
+            </div>
+          </article>
+
+          <article class="story-panel" data-panel="self">
+            <header class="panel-header">
+              <p>ROUTE B · THE PERSON</p>
+              <h2>理性是一层外壳，<br>不是全部。</h2>
+            </header>
+            <div class="self-layout">
+              <div class="self-statement" aria-hidden="true">
+                <span class="statement-index">01—03</span>
+                <p>BETWEEN<br>ANALYSIS<br><i>AND</i><br>FEELING</p>
+                <span class="statement-note">A PERSON IS MORE THAN<br>A COHERENT NARRATIVE.</span>
+              </div>
+              <div class="trait-list">
+                <button class="trait active" type="button" data-trait="rational">
+                  <span>01</span><strong>理性地拆解</strong><i>+</i>
+                </button>
+                <p class="trait-copy active" data-copy="rational">喜欢把混乱的问题变成能记录、复现和继续推进的系统。读论文，搭环境，跑实验，也认真对待每一次失败。</p>
+                <button class="trait" type="button" data-trait="restless">
+                  <span>02</span><strong>不安分地探索</strong><i>+</i>
+                </button>
+                <p class="trait-copy" data-copy="restless">天文摄影、羽毛球、动漫绘制、灵魂乐。兴趣跨度很大，因为比起待在舒适区，更喜欢试探新的可能。</p>
+                <button class="trait" type="button" data-trait="sensitive">
+                  <span>03</span><strong>敏感地感受</strong><i>+</i>
+                </button>
+                <p class="trait-copy" data-copy="sensitive">对关系、情绪与自己的状态有细密觉察。会怀疑，会反思，也仍然选择继续向前。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="story-panel moon-panel" data-panel="moon">
+            <header class="panel-header moon-heading">
+              <p>ROUTE C · THE OBSERVER</p>
+              <h2>月食不是一个瞬间，<br>而是一段缓慢发生的时间。</h2>
+            </header>
+            <div class="moon-viewer">
+              <figure class="moon-frame">
+                <img id="moonImage" src="pictures/食既九连.png" alt="月食过程九连拍">
+                <figcaption><span id="moonCount">01 / 03</span><span id="moonTitle">食既 · 九连</span></figcaption>
+              </figure>
+              <div class="moon-controls">
+                <button type="button" id="moonPrev" aria-label="上一张月食照片" title="上一张">←</button>
+                <div class="moon-progress"><i></i></div>
+                <button type="button" id="moonNext" aria-label="下一张月食照片" title="下一张">→</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="epilogue chapter" id="epilogue" data-chapter="03" data-label="未完">
+      <img src="pictures/血月八连.png" alt="" aria-hidden="true">
+      <div class="epilogue-copy">
+        <p>EPILOGUE · STILL IN PROGRESS</p>
+        <h2>答案还没有出现。<br>实验还在运行。</h2>
+        <p class="english-line">Brains, models, speech, pretraining,<br>and too many terminal windows.</p>
+        <a href="#prologue">重新开始 <span>↑</span></a>
+      </div>
+      <footer>
+        <span>PEILING ZHU</span>
+        <span>ZHEJIANG · 2026</span>
+      </footer>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
