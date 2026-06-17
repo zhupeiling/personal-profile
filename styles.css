@@ -241,31 +241,56 @@ footer {
   object-position: 50% 28%;
 }
 
-.portrait-base {
-  filter: blur(22px) saturate(0.58) brightness(1.03);
-  transform: scale(1.055);
+.portrait-blur {
+  filter: blur(24px) saturate(0.62);
+  transform: scale(1.05);
+  opacity: 0.58;
+}
+
+.portrait-soft {
+  filter: blur(8px) saturate(0.82);
   opacity: 0.68;
+  clip-path: circle(0 at var(--x) var(--y));
+  transition: clip-path 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.particle-veil {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  width: 100%;
-  height: 100%;
-  mix-blend-mode: normal;
-  pointer-events: none;
+.portrait-clear {
+  filter: blur(1.8px) saturate(0.95);
+  opacity: 0.78;
+  clip-path: circle(0 at var(--x) var(--y));
+  transition: clip-path 0.55s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.portrait-stage::after {
-  content: "";
+.portrait-stage:hover .portrait-soft,
+.portrait-stage.engaged .portrait-soft {
+  clip-path: circle(132px at var(--x) var(--y));
+  transition: clip-path 0.08s linear;
+}
+
+.portrait-stage:hover .portrait-clear,
+.portrait-stage.engaged .portrait-clear {
+  clip-path: circle(72px at var(--x) var(--y));
+  transition: clip-path 0.08s linear;
+}
+
+.focus-ring {
   position: absolute;
-  inset: 0;
   z-index: 4;
-  background:
-    radial-gradient(circle at var(--x) var(--y), rgba(255, 255, 255, 0.02) 0 120px, transparent 240px),
-    linear-gradient(90deg, rgba(120, 188, 233, 0.18), rgba(12, 45, 68, 0.18));
+  left: var(--x);
+  top: var(--y);
+  width: 144px;
+  height: 144px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%);
   pointer-events: none;
+  box-shadow: 0 0 0 60px rgba(255, 255, 255, 0.03);
+}
+
+.portrait-stage:hover .focus-ring,
+.portrait-stage.engaged .focus-ring {
+  opacity: 1;
 }
 
 .portrait-hint {

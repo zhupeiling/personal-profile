@@ -4,12 +4,6 @@ const storyDots = [...document.querySelectorAll(".story-dot")];
 const storyPanels = [...document.querySelectorAll(".story-panel")];
 const previewText = document.querySelector("#previewText");
 const soundToggle = document.querySelector(".sound-toggle");
-const portraitImage = document.querySelector("#portraitImage");
-const particleCanvas = document.querySelector("#particleVeil");
-const particleContext = particleCanvas.getContext("2d", { alpha: true });
-const particleMouse = { x: 0, y: 0, active: false };
-let portraitParticles = [];
-let particleMetrics = { width: 0, height: 0, dpr: 1 };
 
 const routeCopy = {
   mind: "从一个问题开始：模型为什么会学出像是“理解”世界的表征？",
@@ -43,164 +37,14 @@ portraitStage.addEventListener("pointermove", (event) => {
   const bounds = portraitStage.getBoundingClientRect();
   const x = ((event.clientX - bounds.left) / bounds.width) * 100;
   const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-  particleMouse.x = event.clientX - bounds.left;
-  particleMouse.y = event.clientY - bounds.top;
-  particleMouse.active = true;
   portraitStage.style.setProperty("--x", `${x}%`);
   portraitStage.style.setProperty("--y", `${y}%`);
   portraitStage.classList.add("engaged");
 });
 
 portraitStage.addEventListener("pointerleave", () => {
-  particleMouse.active = false;
   portraitStage.classList.remove("engaged");
 });
-
-function getObjectFitCoverSource(image, targetWidth, targetHeight) {
-  const imageRatio = image.naturalWidth / image.naturalHeight;
-  const targetRatio = targetWidth / targetHeight;
-
-  if (imageRatio > targetRatio) {
-    const sourceHeight = image.naturalHeight;
-    const sourceWidth = sourceHeight * targetRatio;
-    return {
-      sx: (image.naturalWidth - sourceWidth) / 2,
-      sy: 0,
-      sw: sourceWidth,
-      sh: sourceHeight
-    };
-  }
-
-  const sourceWidth = image.naturalWidth;
-  const sourceHeight = sourceWidth / targetRatio;
-  return {
-    sx: 0,
-    sy: image.naturalHeight * 0.28 - sourceHeight * 0.28,
-    sw: sourceWidth,
-    sh: sourceHeight
-  };
-}
-
-function buildPortraitParticles() {
-  const bounds = portraitStage.getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  particleMetrics = { width: bounds.width, height: bounds.height, dpr };
-  particleCanvas.width = Math.round(bounds.width * dpr);
-  particleCanvas.height = Math.round(bounds.height * dpr);
-  particleCanvas.style.width = `${bounds.width}px`;
-  particleCanvas.style.height = `${bounds.height}px`;
-  particleContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  const sampleCanvas = document.createElement("canvas");
-  const sampleContext = sampleCanvas.getContext("2d", { willReadFrequently: true });
-  sampleCanvas.width = Math.max(1, Math.round(bounds.width));
-  sampleCanvas.height = Math.max(1, Math.round(bounds.height));
-  const source = getObjectFitCoverSource(portraitImage, bounds.width, bounds.height);
-  sampleContext.drawImage(
-    portraitImage,
-    source.sx,
-    source.sy,
-    source.sw,
-    source.sh,
-    0,
-    0,
-    sampleCanvas.width,
-    sampleCanvas.height
-  );
-
-  const isSmall = window.matchMedia("(max-width: 820px)").matches;
-  const gap = isSmall ? 19 : 23;
-  const jitter = gap * 0.62;
-  portraitParticles = [];
-
-  for (let y = gap * 0.5; y < bounds.height; y += gap) {
-    for (let x = gap * 0.5; x < bounds.width; x += gap) {
-      const px = Math.max(0, Math.min(sampleCanvas.width - 1, Math.round(x)));
-      const py = Math.max(0, Math.min(sampleCanvas.height - 1, Math.round(y)));
-      const [r, g, b] = sampleContext.getImageData(px, py, 1, 1).data;
-      const brightness = (r + g + b) / 765;
-      const edgeFade = Math.min(1, Math.max(0.22, (x / bounds.width) * 1.4));
-
-      if (Math.random() > 0.78 + brightness * 0.12) {
-        continue;
-      }
-
-      portraitParticles.push({
-        x: x + (Math.random() - 0.5) * jitter,
-        y: y + (Math.random() - 0.5) * jitter,
-        originX: x,
-        originY: y,
-        driftX: (Math.random() - 0.5) * 0.22,
-        driftY: (Math.random() - 0.5) * 0.22,
-        phase: Math.random() * Math.PI * 2,
-        radius: 1.25 + Math.random() * 1.55,
-        color: `rgb(${r}, ${g}, ${b})`,
-        alpha: (0.18 + brightness * 0.36) * edgeFade
-      });
-    }
-  }
-}
-
-function drawPortraitParticles(time = 0) {
-  const { width, height } = particleMetrics;
-  particleContext.clearRect(0, 0, width, height);
-  particleContext.save();
-  particleContext.filter = "blur(0.15px)";
-
-  for (const particle of portraitParticles) {
-    const floatX = Math.sin(time * 0.00045 + particle.phase) * 3.5;
-    const floatY = Math.cos(time * 0.00038 + particle.phase * 0.8) * 4.2;
-    let distanceInfluence = 0;
-
-    if (particleMouse.active) {
-      const dx = particle.x + floatX - particleMouse.x;
-      const dy = particle.y + floatY - particleMouse.y;
-      const distance = Math.hypot(dx, dy);
-      distanceInfluence = Math.max(0, 1 - distance / 180);
-    }
-
-    particle.x += (particle.originX - particle.x) * 0.012 + particle.driftX;
-    particle.y += (particle.originY - particle.y) * 0.012 + particle.driftY;
-    particle.driftX *= 0.985;
-    particle.driftY *= 0.985;
-
-    const radius = particle.radius + distanceInfluence * 8.2;
-    const alpha = Math.min(0.98, particle.alpha + distanceInfluence * 0.64);
-
-    particleContext.globalAlpha = alpha;
-    particleContext.fillStyle = particle.color;
-    particleContext.beginPath();
-    particleContext.arc(particle.x + floatX, particle.y + floatY, radius, 0, Math.PI * 2);
-    particleContext.fill();
-
-    if (distanceInfluence > 0.08) {
-      particleContext.globalAlpha = distanceInfluence * 0.2;
-      particleContext.strokeStyle = "rgba(255, 255, 255, 0.72)";
-      particleContext.lineWidth = 0.7;
-      particleContext.stroke();
-    }
-  }
-
-  particleContext.restore();
-  requestAnimationFrame(drawPortraitParticles);
-}
-
-function initPortraitParticles() {
-  if (!portraitImage.complete || !portraitImage.naturalWidth) {
-    portraitImage.addEventListener("load", initPortraitParticles, { once: true });
-    return;
-  }
-
-  buildPortraitParticles();
-  requestAnimationFrame(drawPortraitParticles);
-}
-
-window.addEventListener("resize", () => {
-  window.clearTimeout(window.portraitResizeTimer);
-  window.portraitResizeTimer = window.setTimeout(buildPortraitParticles, 180);
-});
-
-initPortraitParticles();
 
 routeButtons.forEach((button) => {
   button.addEventListener("mouseenter", () => setRoute(button.dataset.route));
