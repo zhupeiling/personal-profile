@@ -10,3 +10,9 @@ pictures/正脸半身.jpg
 
 # Local tooling
 .DS_Store
+node_modules/
+dist/
+.env
+blog.db
+__pycache__/
+.pytest_cache/
