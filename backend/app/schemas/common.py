@@ -59,8 +59,10 @@ class PostPublic(PostBase):
     updated_at: datetime
     comments_count: int = 0
     likes_count: int = 0
+    dislikes_count: int = 0
     bookmarks_count: int = 0
     liked_by_me: bool = False
+    disliked_by_me: bool = False
     bookmarked_by_me: bool = False
 
     model_config = ConfigDict(from_attributes=True)
@@ -83,6 +85,8 @@ class CommentPublic(BaseModel):
 class InteractionState(BaseModel):
     post_id: int
     liked: bool
+    disliked: bool
     bookmarked: bool
     likes_count: int
+    dislikes_count: int
     bookmarks_count: int

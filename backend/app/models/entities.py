@@ -36,6 +36,7 @@ class Post(Base):
     author: Mapped[User] = relationship(back_populates="posts")
     comments: Mapped[list["Comment"]] = relationship(back_populates="post", cascade="all, delete-orphan")
     likes: Mapped[list["Like"]] = relationship(back_populates="post", cascade="all, delete-orphan")
+    dislikes: Mapped[list["Dislike"]] = relationship(back_populates="post", cascade="all, delete-orphan")
     bookmarks: Mapped[list["Bookmark"]] = relationship(back_populates="post", cascade="all, delete-orphan")
 
 
@@ -62,6 +63,19 @@ class Like(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     post: Mapped[Post] = relationship(back_populates="likes")
+    user: Mapped[User] = relationship()
+
+
+class Dislike(Base):
+    __tablename__ = "dislikes"
+    __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_dislike_post_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    post: Mapped[Post] = relationship(back_populates="dislikes")
     user: Mapped[User] = relationship()
 
 

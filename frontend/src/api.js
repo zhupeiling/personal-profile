@@ -50,5 +50,6 @@ export const api = {
   comments: (postId) => apiFetch(`/posts/${postId}/comments`),
   comment: (postId, payload) => apiFetch(`/posts/${postId}/comments`, { method: "POST", body: JSON.stringify(payload) }),
   like: (postId) => apiFetch(`/posts/${postId}/like`, { method: "POST" }),
+  dislike: (postId) => apiFetch(`/posts/${postId}/dislike`, { method: "POST" }),
   bookmark: (postId) => apiFetch(`/posts/${postId}/bookmark`, { method: "POST" })
 };

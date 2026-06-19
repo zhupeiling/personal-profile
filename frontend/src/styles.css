@@ -858,7 +858,7 @@ blockquote {
 
 .blog-grid {
   display: grid;
-  grid-template-columns: minmax(250px, 0.75fr) minmax(360px, 1.25fr) minmax(280px, 0.85fr);
+  grid-template-columns: minmax(260px, 0.72fr) minmax(420px, 1.28fr);
   gap: 28px;
   align-items: start;
 }
@@ -866,15 +866,13 @@ blockquote {
 .auth-box,
 .search-box,
 .post-list,
-.post-reader,
-.editor-box {
+.post-reader {
   border: 1px solid rgba(23, 25, 29, 0.16);
   background: rgba(255, 255, 255, 0.56);
 }
 
 .auth-box,
 .search-box,
-.editor-box,
 .post-reader {
   padding: 22px;
 }
@@ -888,8 +886,6 @@ blockquote {
 
 .auth-box input,
 .search-box input,
-.editor-box input,
-.editor-box textarea,
 .comment-form input {
   width: 100%;
   min-height: 42px;
@@ -902,15 +898,8 @@ blockquote {
   outline: none;
 }
 
-.editor-box textarea {
-  min-height: 190px;
-  padding-top: 12px;
-  resize: vertical;
-}
-
 .auth-box button,
 .search-box button,
-.editor-box button,
 .interaction-bar button,
 .comment-form button,
 .post-list button {
@@ -919,7 +908,6 @@ blockquote {
 
 .auth-box button,
 .search-box button,
-.editor-box button,
 .interaction-bar button,
 .comment-form button {
   min-height: 40px;
@@ -939,6 +927,16 @@ blockquote {
   color: white;
   background: var(--red);
   border-color: var(--red);
+}
+
+.auth-notice {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  color: var(--red);
+  background: rgba(168, 68, 50, 0.08);
+  border: 1px solid rgba(168, 68, 50, 0.22);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .search-box {
@@ -990,8 +988,7 @@ blockquote {
   min-height: 540px;
 }
 
-.post-reader h3,
-.editor-box h3 {
+.post-reader h3 {
   margin: 0 0 18px;
   font-family: "Songti SC", "SimSun", serif;
   font-size: 32px;

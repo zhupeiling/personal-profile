@@ -159,7 +159,7 @@ function Story() {
   );
 }
 
-function AuthBox({ user, setUser }) {
+function AuthBox({ user, setUser, notice, clearNotice }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", username: "", password: "" });
   const [message, setMessage] = useState("");
@@ -171,6 +171,7 @@ function AuthBox({ user, setUser }) {
       const data = mode === "login" ? await api.login(form) : await api.register(form);
       setToken(data.access_token);
       setUser(data.user);
+      clearNotice();
       setMessage("已登录");
     } catch (error) {
       setMessage(error.message);
@@ -182,11 +183,12 @@ function AuthBox({ user, setUser }) {
   }
 
   return (
-    <form className="auth-box" onSubmit={submit}>
+    <form className="auth-box" id="login" onSubmit={submit}>
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>登录</button>
         <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>注册</button>
       </div>
+      {notice && <p className="auth-notice">{notice}</p>}
       <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email" />
       {mode === "register" && <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="username" />}
       <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="password" type="password" />
@@ -202,8 +204,8 @@ function Blog({ user, setUser }) {
   const [comments, setComments] = useState([]);
   const [query, setQuery] = useState("");
   const [comment, setComment] = useState("");
-  const [editor, setEditor] = useState({ title: "", slug: "", summary: "", content: "", published: true });
   const [error, setError] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
 
   async function loadPosts(search = query) {
     try {
@@ -219,23 +221,34 @@ function Blog({ user, setUser }) {
     setComments(await api.comments(detail.id));
   }
 
-  async function publish(event) {
-    event.preventDefault();
-    const post = await api.createPost(editor);
-    setEditor({ title: "", slug: "", summary: "", content: "", published: true });
-    await loadPosts();
-    await openPost(post);
+  function requestLogin(actionText) {
+    setAuthNotice(`请先登录后再${actionText}。`);
+    window.setTimeout(() => {
+      document.querySelector("#login")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+    return false;
   }
 
   async function sendComment(event) {
     event.preventDefault();
+    if (!user) {
+      requestLogin("评论");
+      return;
+    }
+    if (!comment.trim()) {
+      return;
+    }
     await api.comment(selected.id, { content: comment });
     setComment("");
     setComments(await api.comments(selected.id));
   }
 
-  async function toggle(action) {
+  async function toggle(action, actionText) {
     if (!selected) return;
+    if (!user) {
+      requestLogin(actionText);
+      return;
+    }
     await action(selected.id);
     setSelected(await api.post(selected.slug));
   }
@@ -252,11 +265,11 @@ function Blog({ user, setUser }) {
       <div className="blog-heading">
         <p className="section-no">04 / BLOG SYSTEM</p>
         <h2>博客与评论区</h2>
-        <p>这里已经接入后端 API：文章存储、登录鉴权、评论、点赞、收藏和关键词搜索。</p>
+        <p>这里已经接入后端 API：文章展示、登录鉴权、评论、点赞、点踩和关键词搜索。</p>
       </div>
       <div className="blog-grid">
         <aside>
-          <AuthBox user={user} setUser={setUser} />
+          <AuthBox user={user} setUser={setUser} notice={authNotice} clearNotice={() => setAuthNotice("")} />
           <form className="search-box" onSubmit={(e) => { e.preventDefault(); loadPosts(query); }}>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索文章关键词" />
             <button type="submit">搜索</button>
@@ -274,32 +287,23 @@ function Blog({ user, setUser }) {
           {selected ? (
             <>
               <h3>{selected.title}</h3>
-              <p className="post-meta">by {selected.author.username} · {selected.likes_count} likes · {selected.bookmarks_count} bookmarks</p>
+              <p className="post-meta">by {selected.author.username} · {selected.likes_count} likes · {selected.dislikes_count} dislikes</p>
               <p className="post-content">{selected.content}</p>
               <div className="interaction-bar">
-                <button type="button" onClick={() => toggle(api.like)}>{selected.liked_by_me ? "取消点赞" : "点赞"}</button>
-                <button type="button" onClick={() => toggle(api.bookmark)}>{selected.bookmarked_by_me ? "取消收藏" : "收藏"}</button>
+                <button type="button" onClick={() => toggle(api.like, "点赞")}>{selected.liked_by_me ? "取消点赞" : "点赞"}</button>
+                <button type="button" onClick={() => toggle(api.dislike, "点踩")}>{selected.disliked_by_me ? "取消点踩" : "点踩"}</button>
               </div>
               <h4>评论</h4>
               {comments.map((item) => <p className="comment" key={item.id}><strong>{item.author.username}</strong>{item.content}</p>)}
-              {user ? <form className="comment-form" onSubmit={sendComment}><input value={comment} onChange={(e) => setComment(e.target.value)} placeholder="写评论" /><button type="submit">发送</button></form> : <p className="empty-state">登录后可以评论。</p>}
+              <form className="comment-form" onSubmit={sendComment}>
+                <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={user ? "写评论" : "登录后可以评论"} />
+                <button type="submit">发送</button>
+              </form>
             </>
           ) : (
             <p className="empty-state">选择一篇文章查看详情。</p>
           )}
         </article>
-        <form className="editor-box" onSubmit={publish}>
-          <h3>写一篇博客</h3>
-          {user ? (
-            <>
-              <input value={editor.title} onChange={(e) => setEditor({ ...editor, title: e.target.value })} placeholder="标题" required />
-              <input value={editor.slug} onChange={(e) => setEditor({ ...editor, slug: e.target.value })} placeholder="slug，例如 neuroai-notes" required />
-              <input value={editor.summary} onChange={(e) => setEditor({ ...editor, summary: e.target.value })} placeholder="摘要" />
-              <textarea value={editor.content} onChange={(e) => setEditor({ ...editor, content: e.target.value })} placeholder="正文" required />
-              <button type="submit">发布</button>
-            </>
-          ) : <p className="empty-state">登录后可以发文。第一个注册用户会自动成为管理员。</p>}
-        </form>
       </div>
     </section>
   );

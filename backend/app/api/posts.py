@@ -3,7 +3,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from app.api.deps import CurrentUser, DbSession, OptionalUser, require_post_owner_or_admin
-from app.models import Bookmark, Comment, Like, Post
+from app.models import Bookmark, Comment, Dislike, Like, Post
 from app.schemas.common import CommentCreate, CommentPublic, InteractionState, PostCreate, PostPublic, PostUpdate
 
 router = APIRouter(prefix="/posts", tags=["posts"])
@@ -13,10 +13,12 @@ def enrich_post(post: Post, db: DbSession, viewer: OptionalUser = None) -> PostP
     result = PostPublic.model_validate(post)
     result.comments_count = db.scalar(select(func.count(Comment.id)).where(Comment.post_id == post.id)) or 0
     result.likes_count = db.scalar(select(func.count(Like.id)).where(Like.post_id == post.id)) or 0
+    result.dislikes_count = db.scalar(select(func.count(Dislike.id)).where(Dislike.post_id == post.id)) or 0
     result.bookmarks_count = db.scalar(select(func.count(Bookmark.id)).where(Bookmark.post_id == post.id)) or 0
 
     if viewer:
         result.liked_by_me = bool(db.scalar(select(Like.id).where(Like.post_id == post.id, Like.user_id == viewer.id)))
+        result.disliked_by_me = bool(db.scalar(select(Dislike.id).where(Dislike.post_id == post.id, Dislike.user_id == viewer.id)))
         result.bookmarked_by_me = bool(db.scalar(select(Bookmark.id).where(Bookmark.post_id == post.id, Bookmark.user_id == viewer.id)))
 
     return result
@@ -117,12 +119,15 @@ def create_comment(post_id: int, payload: CommentCreate, db: DbSession, user: Cu
 
 def interaction_state(post_id: int, db: DbSession, user: CurrentUser) -> InteractionState:
     liked = bool(db.scalar(select(Like.id).where(Like.post_id == post_id, Like.user_id == user.id)))
+    disliked = bool(db.scalar(select(Dislike.id).where(Dislike.post_id == post_id, Dislike.user_id == user.id)))
     bookmarked = bool(db.scalar(select(Bookmark.id).where(Bookmark.post_id == post_id, Bookmark.user_id == user.id)))
     return InteractionState(
         post_id=post_id,
         liked=liked,
+        disliked=disliked,
         bookmarked=bookmarked,
         likes_count=db.scalar(select(func.count(Like.id)).where(Like.post_id == post_id)) or 0,
+        dislikes_count=db.scalar(select(func.count(Dislike.id)).where(Dislike.post_id == post_id)) or 0,
         bookmarks_count=db.scalar(select(func.count(Bookmark.id)).where(Bookmark.post_id == post_id)) or 0,
     )
 
@@ -135,7 +140,26 @@ def toggle_like(post_id: int, db: DbSession, user: CurrentUser) -> InteractionSt
     if existing:
         db.delete(existing)
     else:
+        opposite = db.scalar(select(Dislike).where(Dislike.post_id == post_id, Dislike.user_id == user.id))
+        if opposite:
+            db.delete(opposite)
         db.add(Like(post_id=post_id, user_id=user.id))
+    db.commit()
+    return interaction_state(post_id, db, user)
+
+
+@router.post("/{post_id}/dislike", response_model=InteractionState)
+def toggle_dislike(post_id: int, db: DbSession, user: CurrentUser) -> InteractionState:
+    if not db.get(Post, post_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    existing = db.scalar(select(Dislike).where(Dislike.post_id == post_id, Dislike.user_id == user.id))
+    if existing:
+        db.delete(existing)
+    else:
+        opposite = db.scalar(select(Like).where(Like.post_id == post_id, Like.user_id == user.id))
+        if opposite:
+            db.delete(opposite)
+        db.add(Dislike(post_id=post_id, user_id=user.id))
     db.commit()
     return interaction_state(post_id, db, user)
 
