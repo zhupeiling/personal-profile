@@ -44,12 +44,10 @@ export const api = {
   register: (payload) => apiFetch("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload) => apiFetch("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   me: () => apiFetch("/auth/me"),
+  siteComments: () => apiFetch("/comments"),
+  siteComment: (payload) => apiFetch("/comments", { method: "POST", body: JSON.stringify(payload) }),
+  siteCommentLike: (commentId) => apiFetch(`/comments/${commentId}/like`, { method: "POST" }),
+  siteCommentDislike: (commentId) => apiFetch(`/comments/${commentId}/dislike`, { method: "POST" }),
   posts: (query = "") => apiFetch(`/posts${query ? `?q=${encodeURIComponent(query)}` : ""}`),
-  post: (slug) => apiFetch(`/posts/${slug}`),
-  createPost: (payload) => apiFetch("/posts", { method: "POST", body: JSON.stringify(payload) }),
-  comments: (postId) => apiFetch(`/posts/${postId}/comments`),
-  comment: (postId, payload) => apiFetch(`/posts/${postId}/comments`, { method: "POST", body: JSON.stringify(payload) }),
-  like: (postId) => apiFetch(`/posts/${postId}/like`, { method: "POST" }),
-  dislike: (postId) => apiFetch(`/posts/${postId}/dislike`, { method: "POST" }),
-  bookmark: (postId) => apiFetch(`/posts/${postId}/bookmark`, { method: "POST" })
+  post: (slug) => apiFetch(`/posts/${slug}`)
 };

@@ -44,6 +44,9 @@ def list_posts(
 
 @router.post("", response_model=PostPublic, status_code=status.HTTP_201_CREATED)
 def create_post(payload: PostCreate, db: DbSession, user: CurrentUser) -> PostPublic:
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can create posts")
+
     existing = db.scalar(select(Post).where(Post.slug == payload.slug))
     if existing:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Slug already exists")
@@ -69,6 +72,8 @@ def update_post(post_id: int, payload: PostUpdate, db: DbSession, user: CurrentU
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can update posts")
     require_post_owner_or_admin(post.author_id, user)
 
     data = payload.model_dump(exclude_unset=True)
@@ -90,6 +95,8 @@ def delete_post(post_id: int, db: DbSession, user: CurrentUser) -> None:
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can delete posts")
     require_post_owner_or_admin(post.author_id, user)
     db.delete(post)
     db.commit()

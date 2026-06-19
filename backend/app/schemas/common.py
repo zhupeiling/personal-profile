@@ -90,3 +90,28 @@ class InteractionState(BaseModel):
     likes_count: int
     dislikes_count: int
     bookmarks_count: int
+
+
+class SiteCommentCreate(BaseModel):
+    content: str
+
+
+class SiteCommentPublic(BaseModel):
+    id: int
+    author: UserPublic
+    content: str
+    created_at: datetime
+    likes_count: int = 0
+    dislikes_count: int = 0
+    liked_by_me: bool = False
+    disliked_by_me: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SiteCommentInteractionState(BaseModel):
+    comment_id: int
+    liked: bool
+    disliked: bool
+    likes_count: int
+    dislikes_count: int

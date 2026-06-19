@@ -198,27 +198,19 @@ function AuthBox({ user, setUser, notice, clearNotice }) {
   );
 }
 
-function Blog({ user, setUser }) {
-  const [posts, setPosts] = useState([]);
-  const [selected, setSelected] = useState(null);
+function CommentBoard({ user, setUser }) {
   const [comments, setComments] = useState([]);
-  const [query, setQuery] = useState("");
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [authNotice, setAuthNotice] = useState("");
 
-  async function loadPosts(search = query) {
+  async function loadComments() {
     try {
-      setPosts(await api.posts(search));
+      setComments(await api.siteComments());
+      setError("");
     } catch (err) {
       setError(err.message);
     }
-  }
-
-  async function openPost(post) {
-    const detail = await api.post(post.slug);
-    setSelected(detail);
-    setComments(await api.comments(detail.id));
   }
 
   function requestLogin(actionText) {
@@ -232,76 +224,74 @@ function Blog({ user, setUser }) {
   async function sendComment(event) {
     event.preventDefault();
     if (!user) {
-      requestLogin("评论");
+      requestLogin("留言");
       return;
     }
     if (!comment.trim()) {
       return;
     }
-    await api.comment(selected.id, { content: comment });
+    await api.siteComment({ content: comment });
     setComment("");
-    setComments(await api.comments(selected.id));
+    await loadComments();
   }
 
-  async function toggle(action, actionText) {
-    if (!selected) return;
+  async function toggleComment(commentId, action, actionText) {
     if (!user) {
       requestLogin(actionText);
       return;
     }
-    await action(selected.id);
-    setSelected(await api.post(selected.slug));
+    await action(commentId);
+    await loadComments();
   }
 
   useEffect(() => {
     api.me().then(setUser).catch(() => {});
-    loadPosts("");
+    loadComments();
   }, []);
-
-  const hasPosts = posts.length > 0;
 
   return (
     <section className="blog-section" id="blog">
       <div className="blog-heading">
-        <p className="section-no">04 / BLOG SYSTEM</p>
-        <h2>博客与评论区</h2>
-        <p>这里已经接入后端 API：文章展示、登录鉴权、评论、点赞、点踩和关键词搜索。</p>
+        <p className="section-no">04 / COMMENT WALL</p>
+        <h2>网站留言墙</h2>
+        <p>用户只能对这个网站留言，并可以对彼此的留言点赞或点踩。发留言和互动前需要登录。</p>
       </div>
       <div className="blog-grid">
         <aside>
           <AuthBox user={user} setUser={setUser} notice={authNotice} clearNotice={() => setAuthNotice("")} />
-          <form className="search-box" onSubmit={(e) => { e.preventDefault(); loadPosts(query); }}>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="搜索文章关键词" />
-            <button type="submit">搜索</button>
+          <form className="comment-compose" onSubmit={sendComment}>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder={user ? "给这个网站留一句话" : "登录后可以留言"}
+            />
+            <button type="submit">发布留言</button>
           </form>
-          <div className="post-list">
-            {hasPosts ? posts.map((post) => (
-              <button type="button" key={post.id} onClick={() => openPost(post)} className={selected?.id === post.id ? "active" : ""}>
-                <strong>{post.title}</strong><span>{post.summary || post.slug}</span>
-              </button>
-            )) : <p className="empty-state">后端启动并 seed 后会显示示例文章。</p>}
-          </div>
         </aside>
         <article className="post-reader">
           {error && <p className="error-text">{error}</p>}
-          {selected ? (
-            <>
-              <h3>{selected.title}</h3>
-              <p className="post-meta">by {selected.author.username} · {selected.likes_count} likes · {selected.dislikes_count} dislikes</p>
-              <p className="post-content">{selected.content}</p>
-              <div className="interaction-bar">
-                <button type="button" onClick={() => toggle(api.like, "点赞")}>{selected.liked_by_me ? "取消点赞" : "点赞"}</button>
-                <button type="button" onClick={() => toggle(api.dislike, "点踩")}>{selected.disliked_by_me ? "取消点踩" : "点踩"}</button>
-              </div>
-              <h4>评论</h4>
-              {comments.map((item) => <p className="comment" key={item.id}><strong>{item.author.username}</strong>{item.content}</p>)}
-              <form className="comment-form" onSubmit={sendComment}>
-                <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={user ? "写评论" : "登录后可以评论"} />
-                <button type="submit">发送</button>
-              </form>
-            </>
+          {comments.length ? (
+            <div className="comment-wall">
+              {comments.map((item) => (
+                <section className="site-comment" key={item.id}>
+                  <header>
+                    <strong>{item.author.username}</strong>
+                    <span>{new Date(item.created_at).toLocaleString()}</span>
+                  </header>
+                  <p>{item.content}</p>
+                  <div className="interaction-bar">
+                    <button type="button" onClick={() => toggleComment(item.id, api.siteCommentLike, "点赞")}>
+                      {item.liked_by_me ? "取消点赞" : "点赞"} · {item.likes_count}
+                    </button>
+                    <button type="button" onClick={() => toggleComment(item.id, api.siteCommentDislike, "点踩")}>
+                      {item.disliked_by_me ? "取消点踩" : "点踩"} · {item.dislikes_count}
+                    </button>
+                  </div>
+                </section>
+              ))}
+            </div>
           ) : (
-            <p className="empty-state">选择一篇文章查看详情。</p>
+            <p className="empty-state">现在还没有留言。登录后可以留下第一条。</p>
           )}
         </article>
       </div>
@@ -318,14 +308,14 @@ function App() {
       <div className="noise" aria-hidden="true" />
       <header className="topbar">
         <a className="wordmark" href="#prologue" aria-label="回到首页"><span className="wordmark-cn">朱沛玲</span><span className="wordmark-en">PEILING ZHU</span></a>
-        <nav className="topnav"><a href="#choice">About</a><a href="#blog">Blog</a></nav>
+        <nav className="topnav"><a href="#choice">About</a><a href="#blog">Comments</a></nav>
         <span className="chapter-readout"><span className="chapter-index">00</span><span className="chapter-name">全栈博客</span></span>
       </header>
       <main>
         <Hero />
         <Choice />
         <Story />
-        <Blog user={user} setUser={setUser} />
+        <CommentBoard user={user} setUser={setUser} />
         <section className="epilogue" id="epilogue">
           <img src="/pictures/血月八连.png" alt="" aria-hidden="true" />
           <div className="epilogue-copy"><p>EPILOGUE · STILL IN PROGRESS</p><h2>答案还没有出现。<br />实验还在运行。</h2><p className="english-line">Brains, models, speech, pretraining,<br />and too many terminal windows.</p></div>

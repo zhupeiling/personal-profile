@@ -53,6 +53,45 @@ class Comment(Base):
     author: Mapped[User] = relationship()
 
 
+class SiteComment(Base):
+    __tablename__ = "site_comments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    author: Mapped[User] = relationship()
+    likes: Mapped[list["SiteCommentLike"]] = relationship(back_populates="comment", cascade="all, delete-orphan")
+    dislikes: Mapped[list["SiteCommentDislike"]] = relationship(back_populates="comment", cascade="all, delete-orphan")
+
+
+class SiteCommentLike(Base):
+    __tablename__ = "site_comment_likes"
+    __table_args__ = (UniqueConstraint("comment_id", "user_id", name="uq_site_comment_like_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    comment_id: Mapped[int] = mapped_column(ForeignKey("site_comments.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    comment: Mapped[SiteComment] = relationship(back_populates="likes")
+    user: Mapped[User] = relationship()
+
+
+class SiteCommentDislike(Base):
+    __tablename__ = "site_comment_dislikes"
+    __table_args__ = (UniqueConstraint("comment_id", "user_id", name="uq_site_comment_dislike_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    comment_id: Mapped[int] = mapped_column(ForeignKey("site_comments.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    comment: Mapped[SiteComment] = relationship(back_populates="dislikes")
+    user: Mapped[User] = relationship()
+
+
 class Like(Base):
     __tablename__ = "likes"
     __table_args__ = (UniqueConstraint("post_id", "user_id", name="uq_like_post_user"),)
