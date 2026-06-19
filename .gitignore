@@ -13,6 +13,7 @@ pictures/正脸半身.jpg
 node_modules/
 dist/
 .env
+*.pem
 blog.db
 __pycache__/
 .pytest_cache/
