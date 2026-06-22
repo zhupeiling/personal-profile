@@ -1,4 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query, status
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -7,6 +10,7 @@ from app.models import Bookmark, Comment, Dislike, Like, Post
 from app.schemas.common import CommentCreate, CommentPublic, InteractionState, PostCreate, PostPublic, PostUpdate
 
 router = APIRouter(prefix="/posts", tags=["posts"])
+PDF_DIR = Path("uploads/pdfs")
 
 
 def enrich_post(post: Post, db: DbSession, viewer: OptionalUser = None) -> PostPublic:
@@ -57,6 +61,22 @@ def create_post(payload: PostCreate, db: DbSession, user: CurrentUser) -> PostPu
     db.refresh(post)
     post.author = user
     return enrich_post(post, db, user)
+
+
+@router.post("/upload-pdf")
+async def upload_pdf(user: CurrentUser, file: UploadFile = File(...)) -> dict[str, str]:
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can upload PDFs")
+    filename_hint = (file.filename or "").lower()
+    if file.content_type != "application/pdf" and not filename_hint.endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only PDF files are supported")
+
+    PDF_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid4().hex}.pdf"
+    target = PDF_DIR / filename
+    content = await file.read()
+    target.write_bytes(content)
+    return {"url": f"/api/uploads/pdfs/{filename}"}
 
 
 @router.get("/{slug}", response_model=PostPublic)

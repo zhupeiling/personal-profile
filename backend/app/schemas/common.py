@@ -36,6 +36,7 @@ class PostBase(BaseModel):
     summary: str = ""
     content: str
     cover_image: str | None = None
+    pdf_url: str | None = None
     published: bool = True
 
 
@@ -49,6 +50,7 @@ class PostUpdate(BaseModel):
     summary: str | None = None
     content: str | None = None
     cover_image: str | None = None
+    pdf_url: str | None = None
     published: bool | None = None
 
 

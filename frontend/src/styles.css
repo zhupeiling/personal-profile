@@ -835,6 +835,13 @@ blockquote {
   background: #f8f7f2;
 }
 
+.personal-blog-section {
+  min-height: 100svh;
+  padding: 13vh 6vw 10vh;
+  color: var(--paper);
+  background: #10151a;
+}
+
 .blog-heading {
   display: grid;
   grid-template-columns: 0.55fr 1fr;
@@ -863,6 +870,17 @@ blockquote {
   align-items: start;
 }
 
+.personal-blog-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.78fr) minmax(420px, 1.22fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.personal-blog-section .blog-heading p:last-child {
+  color: rgba(241, 240, 235, 0.64);
+}
+
 .auth-box,
 .comment-compose,
 .post-reader {
@@ -870,9 +888,24 @@ blockquote {
   background: rgba(255, 255, 255, 0.56);
 }
 
+.personal-blog-section .auth-box,
+.blog-editor,
+.post-list,
+.blog-reader {
+  border: 1px solid rgba(241, 240, 235, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .auth-box,
 .comment-compose,
 .post-reader {
+  padding: 22px;
+}
+
+.personal-blog-section .auth-box,
+.blog-editor,
+.post-list,
+.blog-reader {
   padding: 22px;
 }
 
@@ -884,7 +917,9 @@ blockquote {
 }
 
 .auth-box input,
-.comment-compose textarea {
+.comment-compose textarea,
+.blog-editor input,
+.blog-editor textarea {
   width: 100%;
   min-height: 42px;
   margin-bottom: 10px;
@@ -896,22 +931,29 @@ blockquote {
   outline: none;
 }
 
-.comment-compose textarea {
+.comment-compose textarea,
+.blog-editor textarea {
   min-height: 150px;
   padding-top: 12px;
   line-height: 1.8;
   resize: vertical;
 }
 
+.blog-editor textarea {
+  min-height: 220px;
+}
+
 .auth-box button,
 .interaction-bar button,
-.comment-compose button {
+.comment-compose button,
+.blog-editor button {
   cursor: pointer;
 }
 
 .auth-box button,
 .interaction-bar button,
-.comment-compose button {
+.comment-compose button,
+.blog-editor button {
   min-height: 40px;
   padding: 0 14px;
   color: white;
@@ -945,8 +987,80 @@ blockquote {
   margin-top: 18px;
 }
 
+.blog-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.blog-editor h3 {
+  margin: 0 0 16px;
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.blog-editor input[type="file"] {
+  padding: 10px 12px;
+  color: rgba(241, 240, 235, 0.78);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(241, 240, 235, 0.18);
+}
+
+.editor-message {
+  margin: 12px 0 0;
+  color: var(--blue);
+  font-size: 13px;
+}
+
+.post-list {
+  display: grid;
+  gap: 10px;
+}
+
+.post-card {
+  width: 100%;
+  padding: 16px;
+  color: rgba(241, 240, 235, 0.78);
+  text-align: left;
+  background: transparent;
+  border: 1px solid rgba(241, 240, 235, 0.14);
+  cursor: pointer;
+}
+
+.post-card.active,
+.post-card:hover {
+  color: white;
+  border-color: rgba(107, 177, 230, 0.72);
+  background: rgba(107, 177, 230, 0.12);
+}
+
+.post-card span,
+.blog-reader header > p {
+  display: block;
+  color: var(--blue);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.post-card strong {
+  display: block;
+  margin: 10px 0 8px;
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.post-card small {
+  color: rgba(241, 240, 235, 0.55);
+  line-height: 1.6;
+}
+
 .post-reader {
   min-height: 540px;
+}
+
+.blog-reader {
+  min-height: 720px;
 }
 
 .post-reader h3 {
@@ -954,6 +1068,70 @@ blockquote {
   font-family: "Songti SC", "SimSun", serif;
   font-size: 32px;
   font-weight: 400;
+}
+
+.blog-reader h3 {
+  margin: 16px 0;
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: clamp(36px, 4.2vw, 64px);
+  font-weight: 400;
+  line-height: 1.16;
+}
+
+.post-summary {
+  max-width: 720px;
+  color: rgba(241, 240, 235, 0.66);
+  line-height: 1.8;
+}
+
+.post-content {
+  margin: 34px 0;
+  max-width: 780px;
+  white-space: pre-wrap;
+  color: rgba(241, 240, 235, 0.82);
+  font-size: 16px;
+  line-height: 2;
+}
+
+.pdf-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  color: var(--night);
+  background: var(--blue);
+  text-decoration: none;
+}
+
+.inline-compose {
+  margin: 26px 0 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(241, 240, 235, 0.14);
+}
+
+.personal-blog-section .auth-box input,
+.personal-blog-section .comment-compose textarea,
+.personal-blog-section .blog-editor input,
+.personal-blog-section .blog-editor textarea {
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(241, 240, 235, 0.18);
+}
+
+.personal-blog-section .auth-tabs button {
+  color: var(--paper);
+  border-color: rgba(241, 240, 235, 0.16);
+}
+
+.personal-blog-section .site-comment {
+  color: var(--paper);
+  border-color: rgba(241, 240, 235, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.personal-blog-section .empty-state,
+.personal-blog-section .post-meta {
+  color: rgba(241, 240, 235, 0.58);
 }
 
 .post-meta,
@@ -1013,7 +1191,8 @@ blockquote {
 }
 
 @media (max-width: 1050px) {
-  .blog-grid {
+  .blog-grid,
+  .personal-blog-grid {
     grid-template-columns: 1fr;
   }
 }

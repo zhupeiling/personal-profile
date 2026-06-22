@@ -15,5 +15,6 @@ dist/
 .env
 *.pem
 blog.db
+backend/uploads/
 __pycache__/
 .pytest_cache/

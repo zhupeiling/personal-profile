@@ -15,8 +15,9 @@ export function setToken(token) {
 
 export async function apiFetch(path, options = {}) {
   const token = getToken();
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(options.headers || {})
   };
 
@@ -49,5 +50,15 @@ export const api = {
   siteCommentLike: (commentId) => apiFetch(`/comments/${commentId}/like`, { method: "POST" }),
   siteCommentDislike: (commentId) => apiFetch(`/comments/${commentId}/dislike`, { method: "POST" }),
   posts: (query = "") => apiFetch(`/posts${query ? `?q=${encodeURIComponent(query)}` : ""}`),
-  post: (slug) => apiFetch(`/posts/${slug}`)
+  post: (slug) => apiFetch(`/posts/${slug}`),
+  createPost: (payload) => apiFetch("/posts", { method: "POST", body: JSON.stringify(payload) }),
+  postComments: (postId) => apiFetch(`/posts/${postId}/comments`),
+  postComment: (postId, payload) => apiFetch(`/posts/${postId}/comments`, { method: "POST", body: JSON.stringify(payload) }),
+  postLike: (postId) => apiFetch(`/posts/${postId}/like`, { method: "POST" }),
+  postDislike: (postId) => apiFetch(`/posts/${postId}/dislike`, { method: "POST" }),
+  uploadPdf: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiFetch("/posts/upload-pdf", { method: "POST", body: formData });
+  }
 };

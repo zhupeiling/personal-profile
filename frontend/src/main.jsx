@@ -159,7 +159,7 @@ function Story() {
   );
 }
 
-function AuthBox({ user, setUser, notice, clearNotice }) {
+function AuthBox({ user, setUser, notice, clearNotice, loginId = "login" }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", username: "", password: "" });
   const [message, setMessage] = useState("");
@@ -183,7 +183,7 @@ function AuthBox({ user, setUser, notice, clearNotice }) {
   }
 
   return (
-    <form className="auth-box" id="login" onSubmit={submit}>
+    <form className="auth-box" id={loginId} onSubmit={submit}>
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>登录</button>
         <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>注册</button>
@@ -299,6 +299,218 @@ function CommentBoard({ user, setUser }) {
   );
 }
 
+function PersonalBlog({ user, setUser }) {
+  const [posts, setPosts] = useState([]);
+  const [activePost, setActivePost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [comment, setComment] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
+  const [message, setMessage] = useState("");
+  const [pdfFile, setPdfFile] = useState(null);
+  const [draft, setDraft] = useState({
+    title: "",
+    slug: "",
+    summary: "",
+    content: "",
+    pdf_url: "",
+    published: true
+  });
+
+  function formatDate(value) {
+    return new Date(value).toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
+  }
+
+  function makeSlug(title) {
+    return title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+  }
+
+  async function openPost(post) {
+    const fullPost = await api.post(post.slug);
+    setActivePost(fullPost);
+    setComments(await api.postComments(fullPost.id));
+  }
+
+  async function loadPosts() {
+    const data = await api.posts();
+    setPosts(data);
+    if (data.length) {
+      const current = activePost ? data.find((post) => post.id === activePost.id) : data[0];
+      await openPost(current || data[0]);
+    } else {
+      setActivePost(null);
+      setComments([]);
+    }
+  }
+
+  function requestLogin(actionText) {
+    setAuthNotice(`请先登录后再${actionText}。`);
+    window.setTimeout(() => {
+      document.querySelector("#blog-login")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  }
+
+  async function submitPost(event) {
+    event.preventDefault();
+    if (!user?.is_admin) {
+      requestLogin("写博客");
+      return;
+    }
+
+    setMessage("");
+    try {
+      let pdfUrl = draft.pdf_url;
+      if (pdfFile) {
+        const uploaded = await api.uploadPdf(pdfFile);
+        pdfUrl = uploaded.url;
+      }
+      const payload = {
+        ...draft,
+        slug: draft.slug || makeSlug(draft.title) || `post-${Date.now()}`,
+        pdf_url: pdfUrl || null
+      };
+      const created = await api.createPost(payload);
+      setDraft({ title: "", slug: "", summary: "", content: "", pdf_url: "", published: true });
+      setPdfFile(null);
+      setMessage("博客已发布");
+      await loadPosts();
+      await openPost(created);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function sendPostComment(event) {
+    event.preventDefault();
+    if (!activePost) {
+      return;
+    }
+    if (!user) {
+      requestLogin("评论");
+      return;
+    }
+    if (!comment.trim()) {
+      return;
+    }
+    await api.postComment(activePost.id, { content: comment });
+    setComment("");
+    setComments(await api.postComments(activePost.id));
+    setActivePost(await api.post(activePost.slug));
+  }
+
+  async function togglePost(action, actionText) {
+    if (!activePost) {
+      return;
+    }
+    if (!user) {
+      requestLogin(actionText);
+      return;
+    }
+    await action(activePost.id);
+    setActivePost(await api.post(activePost.slug));
+  }
+
+  useEffect(() => {
+    api.me().then(setUser).catch(() => {});
+    loadPosts().catch((error) => setMessage(error.message));
+  }, []);
+
+  return (
+    <section className="personal-blog-section" id="personal-blog">
+      <div className="blog-heading">
+        <p className="section-no">05 / PERSONAL BLOG</p>
+        <h2>个人博客</h2>
+        <p>管理员可以登录后写博客、上传 PDF。每篇文章会显示发布日期，读者登录后可以点赞、点踩和评论。</p>
+      </div>
+
+      <div className="personal-blog-grid">
+        <aside className="blog-sidebar">
+          <AuthBox user={user} setUser={setUser} notice={authNotice} clearNotice={() => setAuthNotice("")} loginId="blog-login" />
+
+          {user?.is_admin && (
+            <form className="blog-editor" onSubmit={submitPost}>
+              <h3>写一篇博客</h3>
+              <input
+                value={draft.title}
+                onChange={(e) => setDraft({ ...draft, title: e.target.value, slug: draft.slug || makeSlug(e.target.value) })}
+                placeholder="标题"
+                required
+              />
+              <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="URL slug" />
+              <input value={draft.summary} onChange={(e) => setDraft({ ...draft, summary: e.target.value })} placeholder="摘要" />
+              <textarea value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} placeholder="正文" required />
+              <input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
+              <button type="submit">发布博客</button>
+              {message && <p className="editor-message">{message}</p>}
+            </form>
+          )}
+
+          <div className="post-list" aria-label="博客列表">
+            {posts.map((post) => (
+              <button
+                className={`post-card ${activePost?.id === post.id ? "active" : ""}`}
+                key={post.id}
+                type="button"
+                onClick={() => openPost(post).catch((error) => setMessage(error.message))}
+              >
+                <span>{formatDate(post.created_at)}</span>
+                <strong>{post.title}</strong>
+                <small>{post.summary || "阅读全文"}</small>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <article className="blog-reader">
+          {activePost ? (
+            <>
+              <header>
+                <p>{formatDate(activePost.created_at)} · {activePost.author.username}</p>
+                <h3>{activePost.title}</h3>
+                {activePost.summary && <p className="post-summary">{activePost.summary}</p>}
+              </header>
+              <div className="post-content">{activePost.content}</div>
+              {activePost.pdf_url && <a className="pdf-link" href={activePost.pdf_url} target="_blank" rel="noreferrer">打开 PDF</a>}
+              <div className="interaction-bar">
+                <button type="button" onClick={() => togglePost(api.postLike, "点赞")}>
+                  {activePost.liked_by_me ? "取消点赞" : "点赞"} · {activePost.likes_count}
+                </button>
+                <button type="button" onClick={() => togglePost(api.postDislike, "点踩")}>
+                  {activePost.disliked_by_me ? "取消点踩" : "点踩"} · {activePost.dislikes_count}
+                </button>
+                <span className="post-meta">评论 · {activePost.comments_count}</span>
+              </div>
+
+              <form className="comment-compose inline-compose" onSubmit={sendPostComment}>
+                <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={user ? "写一条评论" : "登录后可以评论"} />
+                <button type="submit">发布评论</button>
+              </form>
+
+              <div className="comment-wall">
+                {comments.length ? comments.map((item) => (
+                  <section className="site-comment" key={item.id}>
+                    <header>
+                      <strong>{item.author.username}</strong>
+                      <span>{new Date(item.created_at).toLocaleString()}</span>
+                    </header>
+                    <p>{item.content}</p>
+                  </section>
+                )) : <p className="empty-state">这篇文章还没有评论。</p>}
+              </div>
+            </>
+          ) : (
+            <p className="empty-state">博客还没有文章。管理员登录后可以发布第一篇。</p>
+          )}
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const year = useMemo(() => new Date().getFullYear(), []);
@@ -308,7 +520,7 @@ function App() {
       <div className="noise" aria-hidden="true" />
       <header className="topbar">
         <a className="wordmark" href="#prologue" aria-label="回到首页"><span className="wordmark-cn">朱沛玲</span><span className="wordmark-en">PEILING ZHU</span></a>
-        <nav className="topnav"><a href="#choice">About</a><a href="#blog">Comments</a></nav>
+        <nav className="topnav"><a href="#choice">About</a><a href="#blog">Comments</a><a href="#personal-blog">Blog</a></nav>
         <span className="chapter-readout"><span className="chapter-index">00</span><span className="chapter-name">全栈博客</span></span>
       </header>
       <main>
@@ -316,6 +528,7 @@ function App() {
         <Choice />
         <Story />
         <CommentBoard user={user} setUser={setUser} />
+        <PersonalBlog user={user} setUser={setUser} />
         <section className="epilogue" id="epilogue">
           <img src="/pictures/血月八连.png" alt="" aria-hidden="true" />
           <div className="epilogue-copy"><p>EPILOGUE · STILL IN PROGRESS</p><h2>答案还没有出现。<br />实验还在运行。</h2><p className="english-line">Brains, models, speech, pretraining,<br />and too many terminal windows.</p></div>
