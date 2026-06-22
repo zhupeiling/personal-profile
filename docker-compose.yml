@@ -17,6 +17,9 @@ services:
       DATABASE_URL: postgresql+psycopg://peiling:${POSTGRES_PASSWORD}@db:5432/peiling_blog
       SECRET_KEY: ${SECRET_KEY}
       CORS_ORIGINS: https://${DOMAIN},http://${DOMAIN}
+      FRONTEND_URL: https://${DOMAIN}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

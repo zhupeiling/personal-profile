@@ -9,6 +9,24 @@ const routes = {
   moon: "按下快门，是为了留下肉眼无法同时看见的一整段变化。"
 };
 
+function getPath() {
+  return window.location.pathname;
+}
+
+function navigate(path) {
+  window.history.pushState({}, "", path);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+  window.scrollTo({ top: 0, behavior: "auto" });
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function loginPath(next = window.location.pathname + window.location.search) {
+  return `/login?next=${encodeURIComponent(next)}`;
+}
+
 function Hero() {
   const [focus, setFocus] = useState({ x: 58, y: 42, active: false });
 
@@ -159,7 +177,70 @@ function Story() {
   );
 }
 
-function AuthBox({ user, setUser, notice, clearNotice, loginId = "login" }) {
+function Topbar({ user }) {
+  return (
+    <header className="topbar">
+      <button className="wordmark" type="button" onClick={() => navigate("/")} aria-label="回到首页"><span className="wordmark-cn">朱沛玲</span><span className="wordmark-en">PEILING ZHU</span></button>
+      <nav className="topnav"><a href="/#choice">About</a><button type="button" onClick={() => navigate("/blog")}>Blog</button>{user?.is_admin && <button type="button" onClick={() => navigate("/blog/admin/new")}>Write</button>}</nav>
+      <span className="chapter-readout"><span className="chapter-index">00</span><span className="chapter-name">全栈博客</span></span>
+    </header>
+  );
+}
+
+function BlogGateway({ posts }) {
+  return (
+    <section className="blog-gateway" id="blog-entry">
+      <div>
+        <p className="section-no">04 / BLOG</p>
+        <h2>个人博客</h2>
+      </div>
+      <div className="gateway-copy">
+        <p>这里不做主页留言墙。博客单独进入、单独阅读，只展示我发布的文章。</p>
+        <button type="button" onClick={() => navigate("/blog")}>进入博客</button>
+        {posts.slice(0, 2).map((post) => (
+          <button className="gateway-post" key={post.id} type="button" onClick={() => navigate(`/blog/${post.slug}`)}>
+            <span>{formatDate(post.created_at)}</span>
+            <strong>{post.title}</strong>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Epilogue() {
+  const year = useMemo(() => new Date().getFullYear(), []);
+  return (
+    <section className="epilogue" id="epilogue">
+      <img src="/pictures/血月八连.png" alt="" aria-hidden="true" />
+      <div className="epilogue-copy"><p>EPILOGUE · STILL IN PROGRESS</p><h2>答案还没有出现。<br />实验还在运行。</h2><p className="english-line">Brains, models, speech, pretraining,<br />and too many terminal windows.</p></div>
+      <footer><span>PEILING ZHU</span><span>ZHEJIANG · {year}</span></footer>
+    </section>
+  );
+}
+
+function HomePage({ user }) {
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    api.posts().then(setPosts).catch(() => setPosts([]));
+  }, []);
+
+  return (
+    <>
+      <Topbar user={user} />
+      <main>
+        <Hero />
+        <Choice />
+        <Story />
+        <BlogGateway posts={posts} />
+        <Epilogue />
+      </main>
+    </>
+  );
+}
+
+function AuthBox({ user, setUser }) {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ email: "", username: "", password: "" });
   const [message, setMessage] = useState("");
@@ -171,8 +252,9 @@ function AuthBox({ user, setUser, notice, clearNotice, loginId = "login" }) {
       const data = mode === "login" ? await api.login(form) : await api.register(form);
       setToken(data.access_token);
       setUser(data.user);
-      clearNotice();
       setMessage("已登录");
+      const next = new URLSearchParams(window.location.search).get("next") || "/blog";
+      navigate(next);
     } catch (error) {
       setMessage(error.message);
     }
@@ -183,360 +265,250 @@ function AuthBox({ user, setUser, notice, clearNotice, loginId = "login" }) {
   }
 
   return (
-    <form className="auth-box" id={loginId} onSubmit={submit}>
+    <form className="auth-box" onSubmit={submit}>
       <div className="auth-tabs">
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>登录</button>
         <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>注册</button>
       </div>
-      {notice && <p className="auth-notice">{notice}</p>}
       <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email" />
       {mode === "register" && <input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} placeholder="username" />}
       <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="password" type="password" />
       <button type="submit">{mode === "login" ? "登录" : "创建账号"}</button>
+      <a className="github-login" href={`/api/auth/github/start?next=${encodeURIComponent(new URLSearchParams(window.location.search).get("next") || "/blog")}`}>GitHub 登录</a>
       {message && <p>{message}</p>}
     </form>
   );
 }
 
-function CommentBoard({ user, setUser }) {
+function LoginPage({ user, setUser }) {
+  const next = new URLSearchParams(window.location.search).get("next") || "/blog";
+
+  return (
+    <>
+      <Topbar user={user} />
+      <main className="standalone-page auth-page">
+        <section className="auth-panel">
+          <p className="section-no">LOGIN</p>
+          <h1>登录后继续</h1>
+          <p>完成登录后会自动回到刚才的页面。</p>
+          <AuthBox user={user} setUser={setUser} />
+          <button className="text-link" type="button" onClick={() => navigate(next)}>返回</button>
+        </section>
+      </main>
+    </>
+  );
+}
+
+function BlogListPage({ user }) {
+  const [posts, setPosts] = useState([]);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    api.posts().then(setPosts).catch((error) => setMessage(error.message));
+  }, []);
+
+  return (
+    <>
+      <Topbar user={user} />
+      <main className="standalone-page blog-index-page">
+        <section className="blog-index-hero">
+          <p className="section-no">BLOG</p>
+          <h1>个人博客</h1>
+          <p>只展示我发布的文章。文章内可以点赞、点踩和评论，未登录时会跳转到登录页再回到原文。</p>
+          {user?.is_admin && <button type="button" onClick={() => navigate("/blog/admin/new")}>写新文章</button>}
+        </section>
+        <section className="blog-index-list">
+          {message && <p className="error-text">{message}</p>}
+          {posts.length ? posts.map((post) => (
+            <button className="blog-index-item" type="button" key={post.id} onClick={() => navigate(`/blog/${post.slug}`)}>
+              <span>{formatDate(post.created_at)}</span>
+              <h2>{post.title}</h2>
+              <p>{post.summary || "阅读全文"}</p>
+            </button>
+          )) : <p className="empty-state">还没有发布博客。</p>}
+        </section>
+      </main>
+    </>
+  );
+}
+
+function BlogPostPage({ user }) {
+  const slug = decodeURIComponent(getPath().replace(/^\/blog\//, ""));
+  const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [comment, setComment] = useState("");
-  const [error, setError] = useState("");
-  const [authNotice, setAuthNotice] = useState("");
+  const [message, setMessage] = useState("");
 
-  async function loadComments() {
-    try {
-      setComments(await api.siteComments());
-      setError("");
-    } catch (err) {
-      setError(err.message);
+  async function loadPost() {
+    const fullPost = await api.post(slug);
+    setPost(fullPost);
+    setComments(await api.postComments(fullPost.id));
+  }
+
+  function requireLogin() {
+    navigate(loginPath(window.location.pathname));
+  }
+
+  async function toggle(action) {
+    if (!user) {
+      requireLogin();
+      return;
     }
+    await action(post.id);
+    setPost(await api.post(post.slug));
   }
 
-  function requestLogin(actionText) {
-    setAuthNotice(`请先登录后再${actionText}。`);
-    window.setTimeout(() => {
-      document.querySelector("#login")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 0);
-    return false;
-  }
-
-  async function sendComment(event) {
+  async function submitComment(event) {
     event.preventDefault();
     if (!user) {
-      requestLogin("留言");
+      requireLogin();
       return;
     }
     if (!comment.trim()) {
       return;
     }
-    await api.siteComment({ content: comment });
+    await api.postComment(post.id, { content: comment });
     setComment("");
-    await loadComments();
-  }
-
-  async function toggleComment(commentId, action, actionText) {
-    if (!user) {
-      requestLogin(actionText);
-      return;
-    }
-    await action(commentId);
-    await loadComments();
+    await loadPost();
   }
 
   useEffect(() => {
-    api.me().then(setUser).catch(() => {});
-    loadComments();
-  }, []);
+    loadPost().catch((error) => setMessage(error.message));
+  }, [slug]);
 
   return (
-    <section className="blog-section" id="blog">
-      <div className="blog-heading">
-        <p className="section-no">04 / COMMENT WALL</p>
-        <h2>网站留言墙</h2>
-        <p>用户只能对这个网站留言，并可以对彼此的留言点赞或点踩。发留言和互动前需要登录。</p>
-      </div>
-      <div className="blog-grid">
-        <aside>
-          <AuthBox user={user} setUser={setUser} notice={authNotice} clearNotice={() => setAuthNotice("")} />
-          <form className="comment-compose" onSubmit={sendComment}>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={user ? "给这个网站留一句话" : "登录后可以留言"}
-            />
-            <button type="submit">发布留言</button>
-          </form>
-        </aside>
-        <article className="post-reader">
-          {error && <p className="error-text">{error}</p>}
-          {comments.length ? (
+    <>
+      <Topbar user={user} />
+      <main className="standalone-page blog-post-page">
+        <button className="text-link" type="button" onClick={() => navigate("/blog")}>返回博客列表</button>
+        {message && <p className="error-text">{message}</p>}
+        {post ? (
+          <article className="blog-reader single-post-reader">
+            <header>
+              <p>{formatDate(post.created_at)} · {post.author.username}</p>
+              <h1>{post.title}</h1>
+              {post.summary && <p className="post-summary">{post.summary}</p>}
+            </header>
+            <div className="post-content">{post.content}</div>
+            {post.pdf_url && <a className="pdf-link" href={post.pdf_url} target="_blank" rel="noreferrer">打开 PDF</a>}
+            <div className="interaction-bar">
+              <button type="button" onClick={() => toggle(api.postLike)}>{post.liked_by_me ? "取消点赞" : "点赞"} · {post.likes_count}</button>
+              <button type="button" onClick={() => toggle(api.postDislike)}>{post.disliked_by_me ? "取消点踩" : "点踩"} · {post.dislikes_count}</button>
+              <span className="post-meta">评论 · {post.comments_count}</span>
+            </div>
+            <form className="comment-compose inline-compose" onSubmit={submitComment}>
+              <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="写一条评论" />
+              <button type="submit">发布评论</button>
+            </form>
             <div className="comment-wall">
-              {comments.map((item) => (
+              {comments.length ? comments.map((item) => (
                 <section className="site-comment" key={item.id}>
                   <header>
                     <strong>{item.author.username}</strong>
                     <span>{new Date(item.created_at).toLocaleString()}</span>
                   </header>
                   <p>{item.content}</p>
-                  <div className="interaction-bar">
-                    <button type="button" onClick={() => toggleComment(item.id, api.siteCommentLike, "点赞")}>
-                      {item.liked_by_me ? "取消点赞" : "点赞"} · {item.likes_count}
-                    </button>
-                    <button type="button" onClick={() => toggleComment(item.id, api.siteCommentDislike, "点踩")}>
-                      {item.disliked_by_me ? "取消点踩" : "点踩"} · {item.dislikes_count}
-                    </button>
-                  </div>
                 </section>
-              ))}
+              )) : <p className="empty-state">这篇文章还没有评论。</p>}
             </div>
-          ) : (
-            <p className="empty-state">现在还没有留言。登录后可以留下第一条。</p>
-          )}
-        </article>
-      </div>
-    </section>
+          </article>
+        ) : !message && <p className="empty-state">正在加载文章。</p>}
+      </main>
+    </>
   );
 }
 
-function PersonalBlog({ user, setUser }) {
-  const [posts, setPosts] = useState([]);
-  const [activePost, setActivePost] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [comment, setComment] = useState("");
-  const [authNotice, setAuthNotice] = useState("");
+function NewPostPage({ user, setUser }) {
   const [message, setMessage] = useState("");
   const [pdfFile, setPdfFile] = useState(null);
-  const [draft, setDraft] = useState({
-    title: "",
-    slug: "",
-    summary: "",
-    content: "",
-    pdf_url: "",
-    published: true
-  });
-
-  function formatDate(value) {
-    return new Date(value).toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric" });
-  }
+  const [draft, setDraft] = useState({ title: "", slug: "", summary: "", content: "", pdf_url: "", published: true });
 
   function makeSlug(title) {
-    return title
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80);
-  }
-
-  async function openPost(post) {
-    const fullPost = await api.post(post.slug);
-    setActivePost(fullPost);
-    setComments(await api.postComments(fullPost.id));
-  }
-
-  async function loadPosts() {
-    const data = await api.posts();
-    setPosts(data);
-    if (data.length) {
-      const current = activePost ? data.find((post) => post.id === activePost.id) : data[0];
-      await openPost(current || data[0]);
-    } else {
-      setActivePost(null);
-      setComments([]);
-    }
-  }
-
-  function requestLogin(actionText) {
-    setAuthNotice(`请先登录后再${actionText}。`);
-    window.setTimeout(() => {
-      document.querySelector("#blog-login")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 0);
+    return title.trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
   }
 
   async function submitPost(event) {
     event.preventDefault();
-    if (!user?.is_admin) {
-      requestLogin("写博客");
+    if (!user) {
+      navigate(loginPath("/blog/admin/new"));
       return;
     }
-
-    setMessage("");
+    if (!user.is_admin) {
+      setMessage("只有管理员可以写博客。");
+      return;
+    }
     try {
       let pdfUrl = draft.pdf_url;
       if (pdfFile) {
         const uploaded = await api.uploadPdf(pdfFile);
         pdfUrl = uploaded.url;
       }
-      const payload = {
-        ...draft,
-        slug: draft.slug || makeSlug(draft.title) || `post-${Date.now()}`,
-        pdf_url: pdfUrl || null
-      };
-      const created = await api.createPost(payload);
-      setDraft({ title: "", slug: "", summary: "", content: "", pdf_url: "", published: true });
-      setPdfFile(null);
-      setMessage("博客已发布");
-      await loadPosts();
-      await openPost(created);
+      const created = await api.createPost({ ...draft, slug: draft.slug || makeSlug(draft.title) || `post-${Date.now()}`, pdf_url: pdfUrl || null });
+      navigate(`/blog/${created.slug}`);
     } catch (error) {
       setMessage(error.message);
     }
   }
 
-  async function sendPostComment(event) {
-    event.preventDefault();
-    if (!activePost) {
-      return;
-    }
-    if (!user) {
-      requestLogin("评论");
-      return;
-    }
-    if (!comment.trim()) {
-      return;
-    }
-    await api.postComment(activePost.id, { content: comment });
-    setComment("");
-    setComments(await api.postComments(activePost.id));
-    setActivePost(await api.post(activePost.slug));
-  }
-
-  async function togglePost(action, actionText) {
-    if (!activePost) {
-      return;
-    }
-    if (!user) {
-      requestLogin(actionText);
-      return;
-    }
-    await action(activePost.id);
-    setActivePost(await api.post(activePost.slug));
-  }
-
   useEffect(() => {
-    api.me().then(setUser).catch(() => {});
-    loadPosts().catch((error) => setMessage(error.message));
+    if (!user) {
+      api.me().then(setUser).catch(() => navigate(loginPath("/blog/admin/new")));
+    }
   }, []);
 
   return (
-    <section className="personal-blog-section" id="personal-blog">
-      <div className="blog-heading">
-        <p className="section-no">05 / PERSONAL BLOG</p>
-        <h2>个人博客</h2>
-        <p>管理员可以登录后写博客、上传 PDF。每篇文章会显示发布日期，读者登录后可以点赞、点踩和评论。</p>
-      </div>
-
-      <div className="personal-blog-grid">
-        <aside className="blog-sidebar">
-          <AuthBox user={user} setUser={setUser} notice={authNotice} clearNotice={() => setAuthNotice("")} loginId="blog-login" />
-
-          {user?.is_admin && (
-            <form className="blog-editor" onSubmit={submitPost}>
-              <h3>写一篇博客</h3>
-              <input
-                value={draft.title}
-                onChange={(e) => setDraft({ ...draft, title: e.target.value, slug: draft.slug || makeSlug(e.target.value) })}
-                placeholder="标题"
-                required
-              />
-              <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="URL slug" />
-              <input value={draft.summary} onChange={(e) => setDraft({ ...draft, summary: e.target.value })} placeholder="摘要" />
-              <textarea value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} placeholder="正文" required />
-              <input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
-              <button type="submit">发布博客</button>
-              {message && <p className="editor-message">{message}</p>}
-            </form>
-          )}
-
-          <div className="post-list" aria-label="博客列表">
-            {posts.map((post) => (
-              <button
-                className={`post-card ${activePost?.id === post.id ? "active" : ""}`}
-                key={post.id}
-                type="button"
-                onClick={() => openPost(post).catch((error) => setMessage(error.message))}
-              >
-                <span>{formatDate(post.created_at)}</span>
-                <strong>{post.title}</strong>
-                <small>{post.summary || "阅读全文"}</small>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <article className="blog-reader">
-          {activePost ? (
-            <>
-              <header>
-                <p>{formatDate(activePost.created_at)} · {activePost.author.username}</p>
-                <h3>{activePost.title}</h3>
-                {activePost.summary && <p className="post-summary">{activePost.summary}</p>}
-              </header>
-              <div className="post-content">{activePost.content}</div>
-              {activePost.pdf_url && <a className="pdf-link" href={activePost.pdf_url} target="_blank" rel="noreferrer">打开 PDF</a>}
-              <div className="interaction-bar">
-                <button type="button" onClick={() => togglePost(api.postLike, "点赞")}>
-                  {activePost.liked_by_me ? "取消点赞" : "点赞"} · {activePost.likes_count}
-                </button>
-                <button type="button" onClick={() => togglePost(api.postDislike, "点踩")}>
-                  {activePost.disliked_by_me ? "取消点踩" : "点踩"} · {activePost.dislikes_count}
-                </button>
-                <span className="post-meta">评论 · {activePost.comments_count}</span>
-              </div>
-
-              <form className="comment-compose inline-compose" onSubmit={sendPostComment}>
-                <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={user ? "写一条评论" : "登录后可以评论"} />
-                <button type="submit">发布评论</button>
-              </form>
-
-              <div className="comment-wall">
-                {comments.length ? comments.map((item) => (
-                  <section className="site-comment" key={item.id}>
-                    <header>
-                      <strong>{item.author.username}</strong>
-                      <span>{new Date(item.created_at).toLocaleString()}</span>
-                    </header>
-                    <p>{item.content}</p>
-                  </section>
-                )) : <p className="empty-state">这篇文章还没有评论。</p>}
-              </div>
-            </>
-          ) : (
-            <p className="empty-state">博客还没有文章。管理员登录后可以发布第一篇。</p>
-          )}
-        </article>
-      </div>
-    </section>
-  );
-}
-
-function App() {
-  const [user, setUser] = useState(null);
-  const year = useMemo(() => new Date().getFullYear(), []);
-
-  return (
     <>
-      <div className="noise" aria-hidden="true" />
-      <header className="topbar">
-        <a className="wordmark" href="#prologue" aria-label="回到首页"><span className="wordmark-cn">朱沛玲</span><span className="wordmark-en">PEILING ZHU</span></a>
-        <nav className="topnav"><a href="#choice">About</a><a href="#blog">Comments</a><a href="#personal-blog">Blog</a></nav>
-        <span className="chapter-readout"><span className="chapter-index">00</span><span className="chapter-name">全栈博客</span></span>
-      </header>
-      <main>
-        <Hero />
-        <Choice />
-        <Story />
-        <CommentBoard user={user} setUser={setUser} />
-        <PersonalBlog user={user} setUser={setUser} />
-        <section className="epilogue" id="epilogue">
-          <img src="/pictures/血月八连.png" alt="" aria-hidden="true" />
-          <div className="epilogue-copy"><p>EPILOGUE · STILL IN PROGRESS</p><h2>答案还没有出现。<br />实验还在运行。</h2><p className="english-line">Brains, models, speech, pretraining,<br />and too many terminal windows.</p></div>
-          <footer><span>PEILING ZHU</span><span>ZHEJIANG · {year}</span></footer>
+      <Topbar user={user} />
+      <main className="standalone-page blog-editor-page">
+        <section className="blog-editor-shell">
+          <p className="section-no">ADMIN</p>
+          <h1>写一篇博客</h1>
+          <form className="blog-editor" onSubmit={submitPost}>
+            <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value, slug: draft.slug || makeSlug(e.target.value) })} placeholder="标题" required />
+            <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="URL slug" />
+            <input value={draft.summary} onChange={(e) => setDraft({ ...draft, summary: e.target.value })} placeholder="摘要" />
+            <textarea value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} placeholder="正文" required />
+            <input type="file" accept="application/pdf,.pdf" onChange={(e) => setPdfFile(e.target.files?.[0] || null)} />
+            <button type="submit">发布博客</button>
+            {message && <p className="editor-message">{message}</p>}
+          </form>
         </section>
       </main>
     </>
   );
+}
+
+function App() {
+  const [path, setPath] = useState(getPath());
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const onPopState = () => setPath(getPath());
+    window.addEventListener("popstate", onPopState);
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      setToken(token);
+      params.delete("token");
+      const cleanQuery = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${cleanQuery ? `?${cleanQuery}` : ""}`);
+    }
+    api.me().then(setUser).catch(() => {});
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  let page = <HomePage user={user} />;
+  if (path === "/blog") {
+    page = <BlogListPage user={user} />;
+  } else if (path === "/login") {
+    page = <LoginPage user={user} setUser={setUser} />;
+  } else if (path === "/blog/admin/new") {
+    page = <NewPostPage user={user} setUser={setUser} />;
+  } else if (path.startsWith("/blog/")) {
+    page = <BlogPostPage user={user} />;
+  }
+
+  return <><div className="noise" aria-hidden="true" />{page}</>;
 }
 
 createRoot(document.getElementById("root")).render(<App />);
